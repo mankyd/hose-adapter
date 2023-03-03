@@ -45,44 +45,77 @@ camera.position.set( 0, 20, 100 );
 controls.update();
 
 let points = [];
-const resolution = 10;
+const resolution = 30;
 const yoffset = -20;
 
 const BOTTOM_RADIUS = 20;
 const BOTTOM_LENGTH = 10;
-const BOTTOM_CURVE_LENGTH = 8;
-const BOTTOM_CURVE_RADIUS = 10;
+//const BOTTOM_CURVE_LENGTH = 10;
+const BOTTOM_CURVE_RADIUS = 5;
 
-const TOP_RADIUS = 10;
+const MIDDLE_LENGTH = 15;
+
+const TOP_RADIUS = 5;
 const TOP_LENGTH = 5;
-const TOP_CURVE_LENGTH = 3;
+//const TOP_CURVE_LENGTH = 3;
 const TOP_CURVE_RADIUS = 5;
 
 
-points = points.concat(createStraight(yoffset, BOTTOM_LENGTH, BOTTOM_RADIUS));
-points = points.concat(createCurve(yoffset + BOTTOM_LENGTH, BOTTOM_RADIUS, BOTTOM_CURVE_LENGTH, BOTTOM_CURVE_RADIUS, resolution));
+points = points.concat(createStraight(
+	0, 
+	BOTTOM_LENGTH, 
+	BOTTOM_RADIUS));
 
-points = points.concat(createTangent(yoffset + BOTTOM_LENGTH + BOTTOM_CURVE_LENGTH, BOTTOM_CURVE_RADIUS, BOTTOM_RADIUS - BOTTOM_CURVE_RADIUS, BOTTOM_LENGTH, TOP_CURVE_RADIUS, TOP_RADIUS - TOP_CURVE_RADIUS, BOTTOM_LENGTH + BOTTOM_CURVE_LENGTH + 20 + TOP_CURVE_LENGTH));
+const BOTTOM_BIGGER = BOTTOM_RADIUS > TOP_RADIUS;
 
-points = points.concat(createCurve(yoffset + BOTTOM_LENGTH + BOTTOM_CURVE_LENGTH + 20, TOP_RADIUS, TOP_CURVE_LENGTH, -TOP_CURVE_RADIUS, resolution));
+// Figure out our tanget line, but don't add it to the points yet.
+// We first need to add the bottom curve (which requires knowing the tangent line.)
+const tangentPoints = createTangent(
+	0,
+	BOTTOM_CURVE_RADIUS,
+	BOTTOM_RADIUS + (BOTTOM_BIGGER ? -1 : 1) * BOTTOM_CURVE_RADIUS,
+	BOTTOM_LENGTH,
+	TOP_CURVE_RADIUS,
+	TOP_RADIUS + (BOTTOM_BIGGER ? 1 : -1) * TOP_CURVE_RADIUS,
+	BOTTOM_LENGTH + MIDDLE_LENGTH
+);
 
-points = points.concat(createStraight(yoffset + BOTTOM_LENGTH + BOTTOM_CURVE_LENGTH + 20 , TOP_LENGTH, TOP_RADIUS));
+points = points.concat(createCurve(
+	BOTTOM_RADIUS + (BOTTOM_BIGGER ? -1 : 1) * BOTTOM_CURVE_RADIUS , 
+	BOTTOM_LENGTH, 
+	(BOTTOM_BIGGER ? 1 : -1) * BOTTOM_CURVE_RADIUS, 
+	tangentPoints[0].x,
+	tangentPoints[0].y,
+	resolution));
 
-// for ( let i = 0; i < resolution; i ++ ) {
-// 	points.push( new THREE.Vector2( Math.sin( i  / resolution * Math.PI / 2) * 10 + 5, i * (10 / resolution)) );
-// }
-console.log(points);
-const geometry = new THREE.LatheGeometry( points, resolution * 2, Math.PI / 3, Math.PI / 4 );
-const material = new THREE.MeshBasicMaterial( { color: 0xffff00 } );
+points = points.concat(tangentPoints);
+
+points = points.concat(createCurve(
+	TOP_RADIUS + (BOTTOM_BIGGER ? 1 : -1) * TOP_CURVE_RADIUS , 
+	BOTTOM_LENGTH + MIDDLE_LENGTH, 
+	(BOTTOM_BIGGER ? -1 : 1) * TOP_CURVE_RADIUS, 
+	tangentPoints[1].x,
+	tangentPoints[1].y,
+	resolution));
+
+points = points.concat(createStraight(BOTTOM_LENGTH + MIDDLE_LENGTH, TOP_LENGTH, TOP_RADIUS));
+
+//console.log(points);
+const geometry = new THREE.LatheGeometry( points, resolution * 2)
 const lineMaterial = new THREE.LineBasicMaterial( { color: 0xffffff, transparent: true, opacity: 0.5} );
 lineMaterial.linewidth = 5
+const lineGeo = new THREE.BufferGeometry().setFromPoints( points );
+
 const meshMaterial = new THREE.MeshPhongMaterial( { color: 0x156289, emissive: 0x072534, side: THREE.DoubleSide, flatShading: true } );
 
-const latheLine = new THREE.LineSegments( geometry, lineMaterial );
+const line = new THREE.Line(lineGeo, lineMaterial);
+//const latheLine = new THREE.LineSegments( geometry, lineMaterial );
 const lathe = new THREE.Mesh( geometry, meshMaterial );
 
+scene.add(line);
 scene.add( lathe );
-scene.add( latheLine );
+//scene.add( latheLine );
+
 
 function animate() {
 
